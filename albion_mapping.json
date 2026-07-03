@@ -1,32 +1,11 @@
 {
-  "item_raw": [
-    "T4_HIDE",
-    "T4_HIDE_LEVEL1@1",
-    "T4_HIDE_LEVEL2@2",
-    "T4_HIDE_LEVEL3@3"
-  ],
-  "item_raw2": [
-    "T3_LEATHER"
-  ],
-  "item_refined": [
-    "T4_LEATHER",
-    "T4_LEATHER_LEVEL1@1",
-    "T4_LEATHER_LEVEL2@2",
-    "T4_LEATHER_LEVEL3@3"
-  ],
-  "value_by_item": {
-    "T4_HIDE": 16,
-    "T4_HIDE_LEVEL1@1": 32,
-    "T4_HIDE_LEVEL2@2": 64,
-    "T4_HIDE_LEVEL3@3": 128
-  },
   "value_by_refined": {
     "T4_LEATHER": 16,
     "T4_LEATHER_LEVEL1@1": 32,
     "T4_LEATHER_LEVEL2@2": 64,
     "T4_LEATHER_LEVEL3@3": 128
   },
-  "cities": [
+  "royal_cities": [
     "Lymhurst",
     "Martlock",
     "Bridgewatch",
