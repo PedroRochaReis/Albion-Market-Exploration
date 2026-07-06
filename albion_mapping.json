@@ -1,9 +1,16 @@
 {
+  "raw_refined_map": {
+    "HIDE": "LEATHER",
+    "ORE": "METALBAR",
+    "WOOD": "PLANKS",
+    "FIBER": "CLOTH",
+    "ROCK": "STONEBLOCK"
+  },
   "value_by_refined": {
-    "T4_LEATHER": 16,
-    "T4_LEATHER_LEVEL1@1": 32,
-    "T4_LEATHER_LEVEL2@2": 64,
-    "T4_LEATHER_LEVEL3@3": 128
+    "T4_item": 16,
+    "T4_item_LEVEL1@1": 32,
+    "T4_item_LEVEL2@2": 64,
+    "T4_item_LEVEL3@3": 128
   },
   "royal_cities": [
     "Lymhurst",

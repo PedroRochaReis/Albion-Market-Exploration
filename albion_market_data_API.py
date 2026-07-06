@@ -4,6 +4,8 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import pandas as pd
 import requests
 
+from mapping_generator import generate_tiers
+
 BASE_URL = "https://west.albion-online-data.com/api/v2/stats/prices"
 
 
@@ -32,3 +34,22 @@ def get_albion_prices(item_id, craft=True, locations=None):
 def filter_nonzero_prices(prices):
     keys = ("sell_price_min", "sell_price_max", "buy_price_min", "buy_price_max")
     return [p for p in prices if any(int(p.get(k, 0)) > 0 for k in keys)]
+
+
+def check_prices_sell(material, max_tier, craft, locations=None):
+    item_refined = generate_tiers(material, max_tier=max_tier)
+    prices_refined = get_albion_prices(item_refined, craft=False, locations=locations)
+
+    refined_result_table = pd.DataFrame([
+        {
+            "refined": item.get("item_id"),
+            "city": item.get("city"),
+            "buy_price_max": item.get("buy_price_max"),
+            "buy_price_max_date": item.get("buy_price_max_date"),
+            "sell_price_min": item.get("sell_price_min"),
+            "sell_price_min_date": item.get("sell_price_min_date")
+        }
+        for item in prices_refined
+    ])
+    
+    return prices_refined

@@ -2,8 +2,7 @@ import re
 import json
 import pandas as pd
 from albion_market_data_API import get_albion_prices
-from mapping_generator import hide_to_previous_leather
-from mapping_generator import generate_tiers
+from mapping_generator import previous_refined_item, generate_tiers, from_refined_item, to_refined_item
 
 
 
@@ -14,11 +13,14 @@ value_by_refined = mapping["value_by_refined"]
 cities = mapping["royal_cities"]
 
 
-def get_refined_data(max_tier=8):
+def get_refined_data(material: str, max_tier=8, taxa_retorno=0.404):
 
-    item_raw = generate_tiers("HIDE", max_tier=max_tier)
-    item_raw2 = generate_tiers("LEATHER", max_tier=max_tier)
-    item_refined = generate_tiers("LEATHER", max_tier=max_tier)
+    if not material or not taxa_retorno:
+        raise ValueError("Material name and return rate cannot be empty.")
+
+    item_raw = generate_tiers(from_refined_item(material), max_tier=max_tier)
+    item_raw2 = generate_tiers(material, max_tier=max_tier)
+    item_refined = generate_tiers(material, max_tier=max_tier)
 
     prices_raw = get_albion_prices(item_raw, craft=False, locations=cities)
     prices_raw2 = get_albion_prices(item_raw2, craft=False, locations=cities)
@@ -27,7 +29,7 @@ def get_refined_data(max_tier=8):
     raw_resource_table = pd.DataFrame([
         {
             "raw": item.get("item_id"),
-            "resource2": hide_to_previous_leather(item.get("item_id")),
+            "resource2": previous_refined_item(item.get("item_id")),
             "city": item.get("city"),
             "sell_price_min": item.get("sell_price_min"),
             "sell_price_min_date": item.get("sell_price_min_date")
@@ -74,7 +76,7 @@ def get_refined_data(max_tier=8):
         "time_pelego": raw_resource_table["time_since_update"],
     })
 
-    refined_resource_table["resource2"] = refined_resource_table["raw"].apply(hide_to_previous_leather)
+    refined_resource_table["resource2"] = refined_resource_table["raw"].apply(previous_refined_item)
 
     # Segunda tabela: combina o item secundário com cada cidade de origem do segundo recurso
     table2 = pd.DataFrame({
@@ -87,7 +89,7 @@ def get_refined_data(max_tier=8):
 
     # Terceira tabela: combina os itens refinados com as cidades de venda
     table3 = pd.DataFrame({
-        "resource1": refined_result_table.apply(lambda x: to_refined_item(x["refined"]), axis=1),
+        "resource1": refined_result_table.apply(lambda x: from_refined_item(x["refined"]), axis=1),
         "resource_end": refined_result_table["refined"],
         "city_sold": refined_result_table["city"],
         "couro_refined": 1,
@@ -102,8 +104,8 @@ def get_refined_data(max_tier=8):
     merged = base.merge(table3, on=["resource1"], how="left")
 
 
-    merged["retorno"] = 0.438
-    merged["fee"] = round(get_value_for_item(merged["resource_end"], value_by_refined) * 1.05, 0)
+    merged["retorno"] = taxa_retorno
+    merged["fee"] = round(get_value_for_item(merged["resource_end"], value_by_refined, material) * 1.05, 0)
     merged["consumo_efetivo"] = (merged["pelego_amount"] * merged["pelego_raw"] + merged["couro_amount"] * merged["couro_raw"]) * (1 - merged["retorno"]) + merged["fee"]
     merged["sell_tax"] = 0.04
     merged["sell_tax_order"] = 0.025
@@ -117,7 +119,7 @@ def get_refined_data(max_tier=8):
     df_instant = merged[merged["profit_instant"] > 0]
     df_order = merged[merged["profit_order"] > 0]
 
-    df_result = pd.concat([df_instant, df_order]).drop_duplicates().reset_index(drop=True).sort_values("best_profit_percentage", ascending=False)
+    df_result = merged.drop_duplicates().reset_index(drop=True).sort_values("best_profit_percentage", ascending=False)
 
     df_result = df_result[(df_result['pelego_raw'] > 0) & (df_result['couro_raw'] > 0) & (df_result['couro_raw_instant'] > 0) & (df_result['couro_raw_order'] > 0)]
 
@@ -156,22 +158,13 @@ def add_time_since_update(df, date_col):
     df["time_since_update"] = df["time_since_update"].apply(format_timedelta)
     return df
 
-def get_value_for_item(item_name, mapping):
+def get_value_for_item(item_name, mapping, material):
     if hasattr(item_name, "apply"):
-        return item_name.apply(lambda x: get_value_for_item(x, mapping))
+        return item_name.apply(lambda x: get_value_for_item(x, mapping, material))
 
     if item_name is None or pd.isna(item_name):
         return 0
 
-    if item_name in mapping:
-        return mapping[item_name]
+    normalized = item_name.replace(material, "item")
 
-    for key, value in mapping.items():
-        if isinstance(item_name, str) and item_name.startswith(key.split("_LEVEL")[0]):
-            return value
-
-    return 0
-
-
-def to_refined_item(item_name):
-    return re.sub(r"LEATHER", "HIDE", item_name)
+    return mapping.get(normalized, 0)
